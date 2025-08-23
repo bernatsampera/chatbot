@@ -2,6 +2,7 @@ from typing import Annotated, TypedDict
 
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
@@ -21,10 +22,12 @@ def chatbot(state: State):
     return {"messages": [llm.invoke(state["messages"])]}
 
 
-# Build the graph
+# Build the graph with memory checkpointer
 graph_builder = StateGraph(State)
 graph_builder.add_node("chatbot", chatbot)
 graph_builder.add_edge(START, "chatbot")
 graph_builder.add_edge("chatbot", END)
 
-graph = graph_builder.compile()
+# Use LangGraph's built-in memory checkpointer
+memory = MemorySaver()
+graph = graph_builder.compile(checkpointer=memory)

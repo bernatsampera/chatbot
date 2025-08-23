@@ -5,6 +5,7 @@ import {
   type ThreadMessage
 } from "@assistant-ui/react";
 import {Thread} from "./components/assistant-ui/thread";
+import {useRef} from "react";
 
 // API Configuration
 const API_BASE_URL = "http://localhost:8008";
@@ -51,7 +52,9 @@ const handleApiError = (error: unknown): string => {
 /**
  * Creates a chat model adapter that communicates with the backend API
  */
-const createChatModelAdapter = (): ChatModelAdapter => ({
+const createChatModelAdapter = (
+  conversationIdRef: React.RefObject<string | null>
+): ChatModelAdapter => ({
   async run({messages, abortSignal}) {
     try {
       const userMessage = getLatestUserMessage(messages);
@@ -62,7 +65,8 @@ const createChatModelAdapter = (): ChatModelAdapter => ({
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          message: userMessage
+          message: userMessage,
+          conversation_id: conversationIdRef.current
         }),
         signal: abortSignal
       });
@@ -73,6 +77,11 @@ const createChatModelAdapter = (): ChatModelAdapter => ({
 
       const data = await response.json();
       const responseText = data.response || ERROR_MESSAGES.NO_RESPONSE;
+
+      // Store the conversation ID for future requests
+      if (data.conversation_id) {
+        conversationIdRef.current = data.conversation_id;
+      }
 
       return {
         content: [
@@ -101,7 +110,10 @@ const createChatModelAdapter = (): ChatModelAdapter => ({
  * Main App component that provides the chat interface
  */
 function App() {
-  const chatRuntime = useLocalRuntime(createChatModelAdapter());
+  const conversationIdRef = useRef<string | null>(null);
+  const chatRuntime = useLocalRuntime(
+    createChatModelAdapter(conversationIdRef)
+  );
 
   return (
     <div className="h-screen w-screen">
