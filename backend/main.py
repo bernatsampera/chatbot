@@ -85,7 +85,7 @@ def start_hitl(request: StartRequest):
 
 @app.post("/resume_hitl")
 def resume_hitl(request: FeedbackRequest):
-    if "conversation_id" not in request:
+    if not request.conversation_id:
         raise HTTPException(status_code=400, detail="Conversation ID is required")
     return _run_graph(Command(resume=request.is_correct), request.conversation_id)
 
