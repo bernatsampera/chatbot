@@ -22,7 +22,7 @@ llm = init_chat_model("google_genai:gemini-2.5-flash-lite")
 
 # Define the chatbot node
 def chatbot(state: State) -> Command[Literal["human_review"]]:
-    print("state['question']", state["question"])
+    print("chatbot node triggered")
     response = llm.invoke(state["question"])
 
     # return {"llm_output": response.content}
@@ -33,6 +33,7 @@ def chatbot(state: State) -> Command[Literal["human_review"]]:
 
 
 def human_review(state: State) -> Command[Literal["__end__"]]:
+    print("human_review node triggered")
     is_correct = int(interrupt("Is the response correct? (1 for yes, 0 for no): "))
 
     if is_correct == 1:
