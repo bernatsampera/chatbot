@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from chatbot.graph import graph as chatbot_graph
 from chatbot.hitl_graph import graph
 
 
@@ -50,9 +51,7 @@ def chat(request: ChatRequest):
     input_state = {"messages": [{"role": "user", "content": request.message}]}
 
     # Run the graph with the config - LangGraph will handle memory automatically
-    result = graph.invoke(input_state, config)
-
-    print("result['__interrupt__']", result["__interrupt__"])
+    result = chatbot_graph.invoke(input_state, config)
 
     # Extract the assistant's response
     assistant_message = result["messages"][-1]
