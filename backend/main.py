@@ -59,12 +59,12 @@ def chat(request: ChatRequest):
     return {"response": assistant_message.content, "conversation_id": thread_id}
 
 
-class StartRequest(BaseModel):
+class StartHitlRequest(BaseModel):
     question: str
     conversation_id: str | None = None
 
 
-class FeedbackRequest(BaseModel):
+class ResumeHitlRequest(BaseModel):
     is_correct: bool
     conversation_id: str
 
@@ -77,13 +77,13 @@ def _run_graph(input_data, thread_id: str):
 
 
 @app.post("/start_hitl")
-def start_hitl(request: StartRequest):
+def start_hitl(request: StartHitlRequest):
     thread_id = request.conversation_id or str(uuid.uuid4())
     return _run_graph({"question": request.question}, thread_id)
 
 
 @app.post("/resume_hitl")
-def resume_hitl(request: FeedbackRequest):
+def resume_hitl(request: ResumeHitlRequest):
     if not request.conversation_id:
         raise HTTPException(status_code=400, detail="Conversation ID is required")
     return _run_graph(Command(resume=request.is_correct), request.conversation_id)
