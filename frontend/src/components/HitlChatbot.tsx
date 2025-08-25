@@ -6,12 +6,7 @@ import {
 } from "@assistant-ui/react";
 import {Thread} from "@/components/assistant-ui/thread";
 import {useRef} from "react";
-import {
-  getLatestUserMessage,
-  handleApiError,
-  startHitl,
-  resumeHitl
-} from "@/services/hitlApi";
+import {getLatestUserMessage, startHitl, resumeHitl} from "@/services/hitlApi";
 
 function HitlChatbot() {
   const conversationIdRef = useRef<string | null>(null);
@@ -28,7 +23,7 @@ function HitlChatbot() {
       } catch (error) {
         console.error("Chat API error:", error);
         return {
-          content: [{type: "text", text: handleApiError(error)}]
+          content: [{type: "text", text: "Failed to connect to chat service"}]
         } as ChatModelRunResult;
       }
     }

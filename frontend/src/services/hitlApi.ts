@@ -1,17 +1,24 @@
 import type {ThreadMessage, ChatModelRunResult} from "@assistant-ui/react";
 
+// API configuration
 const API_BASE_URL = "http://localhost:8008";
 const ENDPOINTS = {
   START_HITL: `${API_BASE_URL}/start_hitl`,
   RESUME_HITL: `${API_BASE_URL}/resume_hitl`
 };
 
-export const ERROR_MESSAGES = {
-  NO_RESPONSE: "No response received from the chat service",
-  NETWORK_ERROR: "Failed to connect to chat service",
-  API_ERROR: "Chat service error"
-} as const;
+// Type definitions for API responses
+interface HitlApiResponse {
+  conversation_id: string;
+  response: {
+    llm_output?: string;
+    final_output?: string;
+  };
+}
 
+/**
+ * Extracts the latest text message from a thread of messages
+ */
 export const getLatestUserMessage = (
   messages: readonly ThreadMessage[]
 ): string => {
@@ -20,16 +27,11 @@ export const getLatestUserMessage = (
   return firstContent?.type === "text" ? firstContent.text ?? "" : "";
 };
 
-export const handleApiError = (error: unknown): string => {
-  if (error instanceof Error) {
-    if (error.name === "AbortError") return "Request was cancelled";
-    if (error.message.includes("fetch")) return ERROR_MESSAGES.NETWORK_ERROR;
-    return `${ERROR_MESSAGES.API_ERROR}: ${error.message}`;
-  }
-  return "An unexpected error occurred";
-};
-
-async function postJson<T>(
+/**
+ * Makes a POST request to the HITL API with JSON payload
+ * Handles common error cases and type safety
+ */
+async function makeApiRequest<T>(
   url: string,
   body: unknown,
   signal: AbortSignal
@@ -41,17 +43,23 @@ async function postJson<T>(
     signal
   });
 
-  if (!response.ok)
-    throw new Error(`${response.status} ${response.statusText}`);
+  if (!response.ok) {
+    throw new Error(
+      `HITL API request failed: ${response.status} ${response.statusText}`
+    );
+  }
   return response.json() as Promise<T>;
 }
 
+/**
+ * Initiates a new HITL conversation or continues an existing one
+ */
 export async function startHitl(
   userMessage: string,
   conversationIdRef: React.RefObject<string | null>,
   abortSignal: AbortSignal
 ): Promise<ChatModelRunResult> {
-  const data = await postJson<any>(
+  const data = await makeApiRequest<HitlApiResponse>(
     ENDPOINTS.START_HITL,
     {question: userMessage, conversation_id: conversationIdRef.current},
     abortSignal
@@ -63,12 +71,17 @@ export async function startHitl(
     content: [
       {
         type: "text",
-        text: data.response.llm_output || ERROR_MESSAGES.NO_RESPONSE
+        text:
+          data.response.llm_output ||
+          "No response received from the chat service"
       }
     ]
   };
 }
 
+/**
+ * Resumes HITL conversation after user feedback (1 = correct, other = incorrect)
+ */
 export async function resumeHitl(
   userMessage: string,
   conversationIdRef: React.RefObject<string | null>,
@@ -76,7 +89,7 @@ export async function resumeHitl(
 ): Promise<ChatModelRunResult> {
   const isCorrect = userMessage.includes("1");
 
-  const data = await postJson<any>(
+  const data = await makeApiRequest<HitlApiResponse>(
     ENDPOINTS.RESUME_HITL,
     {is_correct: isCorrect, conversation_id: conversationIdRef.current},
     abortSignal
@@ -88,7 +101,9 @@ export async function resumeHitl(
     content: [
       {
         type: "text",
-        text: data.response.final_output || ERROR_MESSAGES.NO_RESPONSE
+        text:
+          data.response.final_output ||
+          "No response received from the chat service"
       }
     ]
   };
